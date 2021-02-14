@@ -10,7 +10,7 @@ function uploadSingleFile(file) {
     formData.append("file", file);
 
     var xhr = new XMLHttpRequest();
-    xhr.open("POST", "/uploadFile1");
+    xhr.open("POST", "/uploadFile");
 
     xhr.onload = function() {
         console.log(xhr.responseText);
