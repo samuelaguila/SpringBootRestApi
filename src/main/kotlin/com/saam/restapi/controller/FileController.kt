@@ -11,12 +11,10 @@ import org.springframework.http.MediaType
 import org.springframework.http.ResponseEntity
 import org.springframework.web.bind.annotation.*
 import org.springframework.web.multipart.MultipartFile
-import org.springframework.web.util.UriComponents
 import org.springframework.web.util.UriComponentsBuilder
 import java.io.IOException
 import java.util.*
 import javax.servlet.http.HttpServletRequest
-
 
 @RestController
 class FileController {
@@ -72,6 +70,7 @@ class FileController {
 
         val fileName: String = storageService.storeFile(file)
 
+        //Change host to local ip address of computer
         val uriComponents = UriComponentsBuilder.newInstance()
                 .scheme("http")
                 .host("10.0.0.11")
