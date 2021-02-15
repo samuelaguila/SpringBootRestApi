@@ -6,13 +6,17 @@ import com.saam.restapi.service.PictureStorageService
 import org.slf4j.LoggerFactory
 import org.springframework.beans.factory.annotation.Autowired
 import org.springframework.core.io.Resource
-import org.springframework.http.*
+import org.springframework.http.HttpHeaders
+import org.springframework.http.MediaType
+import org.springframework.http.ResponseEntity
 import org.springframework.web.bind.annotation.*
 import org.springframework.web.multipart.MultipartFile
-import org.springframework.web.servlet.support.ServletUriComponentsBuilder
+import org.springframework.web.util.UriComponents
+import org.springframework.web.util.UriComponentsBuilder
 import java.io.IOException
 import java.util.*
 import javax.servlet.http.HttpServletRequest
+
 
 @RestController
 class FileController {
@@ -38,49 +42,58 @@ class FileController {
             request: HttpServletRequest
     ): ResponseEntity<Resource?>? {
 
-    // Load file as Resource
-    val resource: Resource = storageService.loadFileAsResource(fileName)
+        // Load file as Resource
+        val resource: Resource = storageService.loadFileAsResource(fileName)
 
-    // Try to determine file's content type
-    var contentType: String? = null
-    try {
-        contentType = request.servletContext.getMimeType(resource.file.absolutePath)
-    } catch (ex: IOException) {
-        logger.info("Could not determine file type.")
-    }
+        // Try to determine file's content type
+        var contentType: String? = null
+        try {
+            contentType = request.servletContext.getMimeType(resource.file.absolutePath)
+        } catch (ex: IOException) {
+            logger.info("Could not determine file type.")
+        }
 
-    // Fallback to the default content type if type could not be determined
-    if (contentType == null) {
-        contentType = "application/octet-stream"
-    }
+        // Fallback to the default content type if type could not be determined
+        if (contentType == null) {
+            contentType = "application/octet-stream"
+        }
 
-    return ResponseEntity.ok()
-            .contentType(MediaType.parseMediaType(contentType))
-            .header(HttpHeaders.CONTENT_DISPOSITION, "attachment; filename=\"" + resource.filename + "\"")
-            .body(resource)
+        return ResponseEntity.ok()
+                .contentType(MediaType.parseMediaType(contentType))
+                .header(HttpHeaders.CONTENT_DISPOSITION, "attachment; filename=\"" + resource.filename + "\"")
+                .body(resource)
     }
 
     @PostMapping("/uploadFile")
     fun uploadFile(
-            @RequestParam("file") file: MultipartFile
+            @RequestParam("file") file: MultipartFile,
+            request: HttpServletRequest
     ): UploadFileResponse? {
 
-    val fileName: String = storageService.storeFile(file)
+        val fileName: String = storageService.storeFile(file)
 
-    val fileDownloadUri = ServletUriComponentsBuilder.fromCurrentContextPath()
-            .path("/downloadFile/")
-            .path(fileName)
-            .toUriString()
+        val uriComponents = UriComponentsBuilder.newInstance()
+                .scheme("http")
+                .host("10.0.0.11")
+                .port("8080")
+                .path("/downloadFile/")
+                .path(fileName)
+                .build().toUriString()
 
-    val pictureUri = PictureUri(
-            pictureName = fileName,
-            pictureType = file.contentType!!,
-            pictureUri = fileDownloadUri
-    )
+//    val fileDownloadUri = ServletUriComponentsBuilder.fromCurrentContextPath()
+//            .path("/downloadFile/")
+//            .path(fileName)
+//            .toUriString()
 
-    storageService.storePictureUri(pictureUri)
+        val pictureUri = PictureUri(
+                pictureName = fileName,
+                pictureType = file.contentType!!,
+                pictureUri = uriComponents
+        )
 
-    return UploadFileResponse(fileName, fileDownloadUri,
-            file.contentType)
+        storageService.storePictureUri(pictureUri)
+
+        return UploadFileResponse(fileName, uriComponents,
+                file.contentType)
     }
 }
